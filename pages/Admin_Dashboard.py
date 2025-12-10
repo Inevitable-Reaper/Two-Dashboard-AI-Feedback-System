@@ -58,7 +58,7 @@ if not df.empty:
         st.bar_chart(rating_counts, color="#764ba2")
     
     with c2:
-        st.subheader("⚠️ Recent Action Items")
+        st.subheader("⚡ Strategic Actions")
         recent_actions = df[['ai_actions']].head(3)
         for act in recent_actions['ai_actions']:
             st.markdown(f'<div class="action-item">🔹 {act}</div>', unsafe_allow_html=True)
