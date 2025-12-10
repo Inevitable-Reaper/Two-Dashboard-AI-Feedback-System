@@ -2,9 +2,10 @@ import streamlit as st
 from utils.llm_utils import process_review_with_ai
 from utils.db_utils import insert_review
 
+# 1. Page Config
 st.set_page_config(page_title="Feedback Portal", page_icon="⭐", layout="centered")
 
-# Adaptive CSS (Dark/Light Mode Support)
+# 2. Adaptive CSS (Dark/Light Mode Support)
 st.markdown("""
     <style>
     .main-header {
@@ -29,38 +30,54 @@ st.markdown("""
         border-radius: 8px;
         margin-top: 2rem;
     }
-    .ai-box h3, .ai-box p {
-        color: var(--text-color);
+    /* Increase star size */
+    button[kind="secondary"] {
+        font-size: 24px !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
+# 3. Header
 st.markdown('<div class="main-header"><h1>✨ Customer Experience Portal</h1><p>We value your voice. Help us improve!</p></div>', unsafe_allow_html=True)
 
+# 4. The Form Card
 with st.form("feedback_form"):
     st.subheader("✍️ Leave a Review")
     
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        st.markdown("**Rate us:**")
-    with col2:
-        rating = st.slider("Stars", 1, 5, 5, label_visibility="collapsed")
-
-    review_text = st.text_area("Your Feedback", placeholder="Tell us about your experience...", height=150)
+    # --- CHANGED: SLIDER TO CLICKABLE STARS ---
+    st.write("**How would you rate your experience?**")
     
+    # st.feedback returns: 0 (1 star), 1 (2 stars) ... 4 (5 stars)
+    # It returns None if the user hasn't clicked yet
+    selected_stars = st.feedback("stars")
+    
+    st.markdown("---") # Visual separator
+    
+    review_text = st.text_area("Your Feedback", placeholder="Tell us what you liked or how we can improve...", height=150)
+    
+    # Submit Button
     submitted = st.form_submit_button("🚀 Submit Feedback", use_container_width=True)
 
+# 5. Logic & Response
 if submitted:
-    if not review_text.strip():
-        st.warning("⚠️ Please write a review before submitting.")
+    # Validation: Check if stars are selected AND text is written
+    if selected_stars is None:
+        st.warning("⚠️ Please select a star rating to proceed.")
+    elif not review_text.strip():
+        st.warning("⚠️ Please write a short review.")
     else:
+        # CONVERSION: Convert 0-index to 1-5 scale
+        final_rating = selected_stars + 1
+        
         with st.spinner("🤖 AI is analyzing your sentiment..."):
-            user_reply, summary, actions = process_review_with_ai(rating, review_text)
+            # Process & Save
+            user_reply, summary, actions = process_review_with_ai(final_rating, review_text)
+            insert_review(final_rating, review_text, user_reply, summary, actions)
             
-            # This now saves to CSV
-            insert_review(rating, review_text, user_reply, summary, actions)
-            
+            # Success Animation
             st.balloons()
+            
+            # Styled AI Response
             st.markdown(f"""
                 <div class="ai-box">
                     <h3>📨 Our Response</h3>
